@@ -94,21 +94,21 @@ class InsertRuleDataTest extends WP_UnitTestCase {
 		$initial_row_count = $wpdb->get_var( "SELECT COUNT(*) FROM $this->table_name" ); // phpcs:ignore WordPress.DB -- caching not required for one time operation.
 
 		// First violation with selector 1.
-		$selectors1    = [
+		$selectors1 = [
 			'selector' => [ '#content p:first-child' ],
 			'ancestry' => [ 'html > body > main > #content > p:first-child' ],
 			'xpath'    => [ '/html/body/main/div[@id="content"]/p[1]' ],
 		];
-		$result1 = $rule_inserter->insert( $post, $rule, $ruletype, $rule_obj, null, null, $selectors1 );
+		$result1    = $rule_inserter->insert( $post, $rule, $ruletype, $rule_obj, null, null, $selectors1 );
 		$this->assertIsInt( $result1, 'First violation should be inserted successfully' );
 
 		// Second violation with same markup but different selector.
-		$selectors2    = [
+		$selectors2 = [
 			'selector' => [ '#sidebar p:first-child' ],
 			'ancestry' => [ 'html > body > aside > #sidebar > p:first-child' ],
 			'xpath'    => [ '/html/body/aside/div[@id="sidebar"]/p[1]' ],
 		];
-		$result2 = $rule_inserter->insert( $post, $rule, $ruletype, $rule_obj, null, null, $selectors2 );
+		$result2    = $rule_inserter->insert( $post, $rule, $ruletype, $rule_obj, null, null, $selectors2 );
 		$this->assertIsInt( $result2, 'Second violation with different selector should also be inserted' );
 
 		// Verify we have two separate records after the fix.
@@ -169,7 +169,7 @@ class InsertRuleDataTest extends WP_UnitTestCase {
 			'ancestry' => [ 'html > body > main > a:nth-child(1)' ],
 			'xpath'    => [ '/html/body/main/a[1]' ],
 		];
-		$result1 = $rule_inserter->insert( $post, $rule, $ruletype, $rule_obj, null, null, $selectors1 );
+		$result1    = $rule_inserter->insert( $post, $rule, $ruletype, $rule_obj, null, null, $selectors1 );
 		$this->assertIsInt( $result1, 'First link violation should be inserted successfully' );
 
 		// Second link violation with same markup but different selector.
@@ -178,7 +178,7 @@ class InsertRuleDataTest extends WP_UnitTestCase {
 			'ancestry' => [ 'html > body > main > a:nth-child(2)' ],
 			'xpath'    => [ '/html/body/main/a[2]' ],
 		];
-		$result2 = $rule_inserter->insert( $post, $rule, $ruletype, $rule_obj, null, null, $selectors2 );
+		$result2    = $rule_inserter->insert( $post, $rule, $ruletype, $rule_obj, null, null, $selectors2 );
 		$this->assertIsInt( $result2, 'Second link violation with different selector should also be inserted' );
 
 		// Verify we have two separate records for the identical links.
