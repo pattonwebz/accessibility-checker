@@ -4,13 +4,8 @@
 import axe from 'axe-core';
 
 describe( 'Enhanced Violation Processing Integration', () => {
-	let mockProcessViolation;
-
 	beforeEach( () => {
 		document.body.innerHTML = '';
-
-		// Import and mock the processViolation function from the actual scanner
-		// Since processViolation is not exported, we'll test through a real scan
 		jest.clearAllMocks();
 	} );
 
@@ -35,7 +30,6 @@ describe( 'Enhanced Violation Processing Integration', () => {
 		results.violations.forEach( ( violation ) => {
 			violation.nodes.forEach( ( node ) => {
 				const selector = node.target[ 0 ];
-				const element = document.querySelector( selector );
 
 				// Mock what our enhanced processViolation should do
 				const processed = {
