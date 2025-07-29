@@ -7,6 +7,7 @@ import { exclusionsArray } from './config/exclusions';
 import imgAnimated from './rules/img-animated';
 import { preScanAnimatedImages } from './checks/img-animated-check';
 import { getPageDensity } from './helpers/density';
+import { generateViolationFingerprint, generateViolationMetadata, generateEnhancedDOMPath } from './utils/fingerprinting';
 
 const SCAN_TIMEOUT_IN_SECONDS = 30;
 
@@ -377,10 +378,17 @@ if ( isIframeContext() ) {
 function processViolation( violation, item ) {
 	// Note that this is an array, generally with one item, but can be more.
 	const selector = violation.node.selector;
+	const element = document.querySelector( selector );
 	const landmark = getLandmarkForSelector( selector );
 	const ancestry = violation.node.ancestry || [];
 	const xpath = violation.node.xpath || [];
-	const html = document.querySelector( selector )?.outerHTML;
+	const html = element?.outerHTML;
+
+	// Generate unique fingerprint and enhanced metadata
+	const fingerprint = generateViolationFingerprint( item.id, element, selector );
+	const enhancedPath = generateEnhancedDOMPath( element );
+	const metadata = generateViolationMetadata( element );
+
 	return {
 		selector,
 		ancestry,
@@ -391,5 +399,9 @@ function processViolation( violation, item ) {
 		tags: item.tags,
 		landmark: landmark.type,
 		landmarkSelector: landmark.selector,
+		// Enhanced identification features
+		fingerprint,
+		enhancedPath,
+		metadata,
 	};
 }
