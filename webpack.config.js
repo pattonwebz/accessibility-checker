@@ -33,6 +33,16 @@ module.exports = {
 		],
 
 	},
+	// Performance budgets to prevent bundle size regression
+	performance: {
+		maxEntrypointSize: 250000, // 244 KiB = ~250KB
+		maxAssetSize: 250000,
+		hints: 'warning', // Show warnings when limits are exceeded
+		assetFilter( assetFilename ) {
+			// Only enforce size limits on JavaScript bundles, not images or CSS
+			return assetFilename.endsWith( '.js' );
+		},
+	},
 	optimization: {
 		splitChunks: {
 			cacheGroups: {
@@ -40,6 +50,13 @@ module.exports = {
 					test: /[\\/]src[\\/]frontendFixes[\\/]/,
 					name: 'frontendFixes',
 					chunks: 'all',
+				},
+				// Separate axe-core into its own chunk for better caching and lazy loading
+				axeCore: {
+					test: /[\\/]node_modules[\\/]axe-core[\\/]/,
+					name: 'axe-core',
+					chunks: 'async',
+					priority: 10,
 				},
 			},
 		},

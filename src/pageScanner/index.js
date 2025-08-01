@@ -1,7 +1,5 @@
 /* eslint-disable padded-blocks, no-multiple-empty-lines */
-/* global axe */
 
-import 'axe-core';
 import { rulesArray, checksArray, standardRuleIdsArray, customRuleIdsArray } from './config/rules';
 import { exclusionsArray } from './config/exclusions';
 import imgAnimated from './rules/img-animated';
@@ -12,6 +10,35 @@ const SCAN_TIMEOUT_IN_SECONDS = 30;
 
 // Hold the timeout for the scan so it can bail on long-running scans.
 let tooLongTimeout;
+
+// Cache for dynamically imported axe-core
+let axeModule = null;
+
+/**
+ * Dynamically import axe-core with lazy loading to reduce initial bundle size.
+ *
+ * @return {Promise<Object>} Promise that resolves to axe-core module
+ */
+async function loadAxe() {
+	if ( axeModule ) {
+		return axeModule;
+	}
+
+	try {
+		// Use dynamic import for code splitting
+		const axeCore = await import( /* webpackChunkName: "axe-core" */ 'axe-core' );
+		// axe-core exports as default in some builds, handle both cases
+		axeModule = axeCore.default || axeCore || window.axe;
+		return axeModule;
+	} catch ( error ) {
+		// Fallback to global axe if dynamic import fails
+		if ( typeof window !== 'undefined' && window.axe ) {
+			axeModule = window.axe;
+			return axeModule;
+		}
+		throw new Error( 'Failed to load axe-core: ' + error.message );
+	}
+}
 
 // Landmark tags for semantic regions
 const LANDMARK_TAGS = [ 'MAIN', 'HEADER', 'FOOTER', 'NAV', 'ASIDE' ];
@@ -198,6 +225,9 @@ function getIframeOptions() {
 const scan = async (
 	options = { configOptions: {}, runOptions: {} }
 ) => {
+	// Load axe-core dynamically
+	const axe = await loadAxe();
+
 	const context = { exclude: exclusionsArray };
 
 	const defaults = {
@@ -311,29 +341,38 @@ function dispatchDoneEvent( violations, errorMsgs, error ) {
 }
 
 // eslint-disable-next-line no-unused-vars
-const onDone = ( violations = [], errorMsgs = [], error = false ) => {
+const onDone = async ( violations = [], errorMsgs = [], error = false ) => {
 	// cleanup the timeout.
 	clearTimeout( tooLongTimeout );
 
-	// cleanup axe.
-	if ( typeof ( axe.cleanup ) !== 'undefined' ) {
-		axe.cleanup(
-			function() {
-				axe.teardown();
-				axe = null;
-				dispatchDoneEvent( violations, errorMsgs, '' );
-			},
-			function() {
-				axe.teardown();
-				axe = null;
-				errorMsgs.push( '***** axe.cleanup() failed.' );
-				dispatchDoneEvent( violations, errorMsgs, 'cleanup-failed' );
-			}
-		);
-	} else {
-		errorMsgs.push( '***** axe.cleanup() does not exist.' );
-		axe = null;
-		dispatchDoneEvent( violations, errorMsgs, 'cleanup-not-exists' );
+	// Get axe instance and cleanup
+	try {
+		const axe = await loadAxe();
+		if ( typeof ( axe.cleanup ) !== 'undefined' ) {
+			axe.cleanup(
+				function() {
+					axe.teardown();
+					// Clear the cached module to allow fresh imports
+					axeModule = null;
+					dispatchDoneEvent( violations, errorMsgs, '' );
+				},
+				function() {
+					axe.teardown();
+					// Clear the cached module to allow fresh imports
+					axeModule = null;
+					errorMsgs.push( '***** axe.cleanup() failed.' );
+					dispatchDoneEvent( violations, errorMsgs, 'cleanup-failed' );
+				}
+			);
+		} else {
+			errorMsgs.push( '***** axe.cleanup() does not exist.' );
+			// Clear the cached module to allow fresh imports
+			axeModule = null;
+			dispatchDoneEvent( violations, errorMsgs, 'cleanup-not-exists' );
+		}
+	} catch ( axeError ) {
+		errorMsgs.push( '***** Failed to load axe for cleanup: ' + axeError.message );
+		dispatchDoneEvent( violations, errorMsgs, 'axe-load-error' );
 	}
 };
 
