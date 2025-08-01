@@ -1,4 +1,5 @@
 /* eslint-disable padded-blocks, no-multiple-empty-lines */
+/* global axe */
 
 import { rulesArray, checksArray, standardRuleIdsArray, customRuleIdsArray } from './config/rules';
 import { exclusionsArray } from './config/exclusions';
@@ -6,10 +7,18 @@ import imgAnimated from './rules/img-animated';
 import { preScanAnimatedImages } from './checks/img-animated-check';
 import { getPageDensity } from './helpers/density';
 
-// Use dynamic import to load axe-core only when scan is called
+// Dynamically import axe-core to reduce initial bundle size
+let axeLoaded = false;
+let axeInstance = null;
+
 async function loadAxe() {
-	const axeModule = await import('axe-core');
-	return axeModule.default || axeModule.axe || axeModule;
+	if (!axeLoaded) {
+		// Use dynamic import to load axe-core
+		const axeModule = await import('axe-core');
+		axeInstance = axeModule.default || axeModule.axe || axeModule;
+		axeLoaded = true;
+	}
+	return axeInstance;
 }
 
 const SCAN_TIMEOUT_IN_SECONDS = 30;
@@ -202,7 +211,7 @@ function getIframeOptions() {
 const scan = async (
 	options = { configOptions: {}, runOptions: {} }
 ) => {
-	// Load axe-core dynamically only when scan is called
+	// Load axe-core dynamically
 	const axe = await loadAxe();
 	
 	const context = { exclude: exclusionsArray };
@@ -330,16 +339,22 @@ const onDone = async ( violations = [], errorMsgs = [], error = false ) => {
 		axe.cleanup(
 			function() {
 				axe.teardown();
+				axeInstance = null;
+				axeLoaded = false;
 				dispatchDoneEvent( violations, errorMsgs, '' );
 			},
 			function() {
 				axe.teardown();
+				axeInstance = null;
+				axeLoaded = false;
 				errorMsgs.push( '***** axe.cleanup() failed.' );
 				dispatchDoneEvent( violations, errorMsgs, 'cleanup-failed' );
 			}
 		);
 	} else {
 		errorMsgs.push( '***** axe.cleanup() does not exist.' );
+		axeInstance = null;
+		axeLoaded = false;
 		dispatchDoneEvent( violations, errorMsgs, 'cleanup-not-exists' );
 	}
 };

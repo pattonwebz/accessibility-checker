@@ -43,6 +43,9 @@ module.exports = {
 				},
 			},
 		},
+		// Enhanced tree shaking and module concatenation
+		usedExports: true,
+		sideEffects: false,
 		minimizer: [
 			new TerserPlugin( {
 				parallel: true,
@@ -51,6 +54,12 @@ module.exports = {
 						reserved: [ '__', '_n', '_x', '_nx' ], // Prevent webpack from using these translation function names and mangling them in the source.
 					},
 					keep_fnames: /(__|_n|_x|_nx)$/,
+					// More aggressive compression for axe-core
+					compress: {
+						drop_console: true,
+						drop_debugger: true,
+						pure_funcs: ['console.log', 'console.info', 'console.debug'],
+					},
 				},
 			} ),
 			new CssMinimizerPlugin(),
@@ -91,6 +100,13 @@ module.exports = {
 				},
 			},
 		],
+	},
+	// Configure externals and resolve settings for better tree-shaking
+	resolve: {
+		// This can help with tree-shaking by ensuring ES modules are used when available
+		mainFields: ['module', 'main'],
+		// Ensure tree-shaking works properly
+		aliasFields: ['module'],
 	},
 	plugins: [
 		new webpack.ProgressPlugin(),
