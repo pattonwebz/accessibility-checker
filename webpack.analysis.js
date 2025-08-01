@@ -5,44 +5,17 @@ const { CleanWebpackPlugin } = require( 'clean-webpack-plugin' );
 const MiniCssExtractPlugin = require( 'mini-css-extract-plugin' );
 const CssMinimizerPlugin = require( 'css-minimizer-webpack-plugin' );
 const TerserPlugin = require( 'terser-webpack-plugin' );
+const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 
 module.exports = {
 	mode: 'production', //development | production
 	watch: false,
 	entry: {
-		admin: [
-			'./src/admin/index.js',
-			'./src/admin/sass/accessibility-checker-admin.scss',
-		],
-		editorApp: [
-			'./src/editorApp/index.js',
-		],
-		frontendHighlighterApp: [
-			'./src/frontendHighlighterApp/index.js',
-			'./src/frontendHighlighterApp/sass/app.scss',
-		],
 		pageScanner: [
 			'./src/pageScanner/index.js',
 		],
-		emailOptIn: [
-			'./src/emailOptIn/index.js',
-			'./src/emailOptIn/sass/email-opt-in.scss',
-		],
-		frontendFixes: [
-			'./src/frontendFixes/index.js',
-		],
-
 	},
 	optimization: {
-		splitChunks: {
-			cacheGroups: {
-				specificScript: {
-					test: /[\\/]src[\\/]frontendFixes[\\/]/,
-					name: 'frontendFixes',
-					chunks: 'all',
-				},
-			},
-		},
 		// Enhanced tree shaking and module concatenation
 		usedExports: true,
 		sideEffects: false,
@@ -59,13 +32,6 @@ module.exports = {
 						drop_console: true,
 						drop_debugger: true,
 						pure_funcs: ['console.log', 'console.info', 'console.debug'],
-						// Aggressive tree-shaking for axe-core
-						unused: true,
-						dead_code: true,
-						// Remove unused rule definitions in axe-core
-						global_defs: {
-							'process.env.NODE_ENV': '"production"',
-						},
 					},
 				},
 			} ),
@@ -74,8 +40,7 @@ module.exports = {
 	},
 	output: {
 		filename: '[name].bundle.js',
-		path: path.resolve( __dirname, 'build' ),
-		chunkFilename: 'chunks/[name].[chunkhash].js', // Store split bundles in 'chunks' directory
+		path: path.resolve( __dirname, 'build-analysis' ),
 	},
 
 	module: {
@@ -121,21 +86,14 @@ module.exports = {
 		new MiniCssExtractPlugin( {
 			filename: './css/[name].css',
 		} ),
-		// Exclude axe-core locale files to reduce bundle size
-		new webpack.IgnorePlugin({
-			resourceRegExp: /^\.\/locales\/.*$/,
-			contextRegExp: /axe-core$/,
-		}),
-		// Further reduce bundle size by excluding unused axe-core features
-		new webpack.IgnorePlugin({
-			resourceRegExp: /^\.\/lib\/.*$/,
-			contextRegExp: /axe-core$/,
+		new BundleAnalyzerPlugin({
+			analyzerMode: 'static',
+			openAnalyzer: false,
+			reportFilename: 'bundle-report.html'
 		}),
 	],
 	externals: {
 		// Exclude WordPress core scripts and styles from the build.
 		'@wordpress/i18n': [ 'wp', 'i18n' ],
-		// Load axe-core externally to dramatically reduce bundle size
-		'axe-core': 'axe',
 	},
 };

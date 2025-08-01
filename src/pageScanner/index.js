@@ -1,16 +1,14 @@
 /* eslint-disable padded-blocks, no-multiple-empty-lines */
+/* global axe */
+
+// Load axe-core externally to reduce bundle size
+import './axe-loader';
 
 import { rulesArray, checksArray, standardRuleIdsArray, customRuleIdsArray } from './config/rules';
 import { exclusionsArray } from './config/exclusions';
 import imgAnimated from './rules/img-animated';
 import { preScanAnimatedImages } from './checks/img-animated-check';
 import { getPageDensity } from './helpers/density';
-
-// Use dynamic import to load axe-core only when scan is called
-async function loadAxe() {
-	const axeModule = await import('axe-core');
-	return axeModule.default || axeModule.axe || axeModule;
-}
 
 const SCAN_TIMEOUT_IN_SECONDS = 30;
 
@@ -202,9 +200,6 @@ function getIframeOptions() {
 const scan = async (
 	options = { configOptions: {}, runOptions: {} }
 ) => {
-	// Load axe-core dynamically only when scan is called
-	const axe = await loadAxe();
-	
 	const context = { exclude: exclusionsArray };
 
 	const defaults = {
@@ -318,28 +313,28 @@ function dispatchDoneEvent( violations, errorMsgs, error ) {
 }
 
 // eslint-disable-next-line no-unused-vars
-const onDone = async ( violations = [], errorMsgs = [], error = false ) => {
+const onDone = ( violations = [], errorMsgs = [], error = false ) => {
 	// cleanup the timeout.
 	clearTimeout( tooLongTimeout );
-
-	// Load axe for cleanup
-	const axe = await loadAxe();
 
 	// cleanup axe.
 	if ( typeof ( axe.cleanup ) !== 'undefined' ) {
 		axe.cleanup(
 			function() {
 				axe.teardown();
+				axe = null;
 				dispatchDoneEvent( violations, errorMsgs, '' );
 			},
 			function() {
 				axe.teardown();
+				axe = null;
 				errorMsgs.push( '***** axe.cleanup() failed.' );
 				dispatchDoneEvent( violations, errorMsgs, 'cleanup-failed' );
 			}
 		);
 	} else {
 		errorMsgs.push( '***** axe.cleanup() does not exist.' );
+		axe = null;
 		dispatchDoneEvent( violations, errorMsgs, 'cleanup-not-exists' );
 	}
 };
