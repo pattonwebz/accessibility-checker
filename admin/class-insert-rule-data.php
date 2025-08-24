@@ -72,16 +72,17 @@ class Insert_Rule_Data {
 			return;
 		}
 
-		// Check if exists.
+		// Check if exists - include selector to distinguish identical markup in different locations.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Using direct query for adding data to database, caching not required for one time operation.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
-				'SELECT postid, ignre FROM %i where type = %s and postid = %d and rule = %s and object = %s and siteid = %d',
+				'SELECT postid, ignre FROM %i where type = %s and postid = %d and rule = %s and object = %s and selector = %s and siteid = %d',
 				$table_name,
 				$rule_data['type'],
 				$rule_data['postid'],
 				$rule_data['rule'],
 				$rule_data['object'],
+				$rule_data['selector'] ?? '',
 				$rule_data['siteid']
 			),
 			ARRAY_A
@@ -96,11 +97,11 @@ class Insert_Rule_Data {
 					$rule_data['ignre'] = 1;
 				}
 
-				// update existing record.
+				// update existing record - include selector in WHERE clause to match the specific violation.
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Using direct query for adding data to database, caching not required for one time operation.
 				$wpdb->query(
 					$wpdb->prepare(
-						'UPDATE %i SET recordcheck = %d, landmark = %s, landmark_selector = %s, selector = %s, ancestry = %s, xpath = %s, ignre = %d  WHERE siteid = %d and postid = %d and rule = %s and object = %s and type = %s',
+						'UPDATE %i SET recordcheck = %d, landmark = %s, landmark_selector = %s, selector = %s, ancestry = %s, xpath = %s, ignre = %d  WHERE siteid = %d and postid = %d and rule = %s and object = %s and selector = %s and type = %s',
 						$table_name,
 						1,
 						$rule_data['landmark'],
@@ -113,6 +114,7 @@ class Insert_Rule_Data {
 						$rule_data['postid'],
 						$rule_data['rule'],
 						$rule_data['object'],
+						$rule_data['selector'] ?? '',
 						$rule_data['type']
 					)
 				);
